@@ -607,6 +607,8 @@ def return_interval_data(raw_precip: pd.DataFrame, Return_Intervals_MC: np.ndarr
     mu_LN = np.log(median)
     SD = df2['Max Log SD'].values
     df2['mu LN'] = [mu_truncated_LN(SD1, PMP, median1, mu1).x[0] for median1, mu1, SD1 in zip(median, mu_LN, SD)]
+    df2['Lower (68%)'] = np.exp(-df2['Max Log SD'].values)*df2['Median'].values
+    df2['Upper (68%)'] = np.exp(df2['Max Log SD'].values)*df2['Median'].values
     return df2
 
 def mu_truncated_LN(sigma: float, PMP: float, median: float, Initial_Value: float) -> float:

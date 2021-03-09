@@ -578,6 +578,46 @@ def combine_results_stratified(var: str, outputs_dir: str, BCN: str, duration: i
         #print('Total Weight:', all_dfs['Weight'].sum())
     return dic
 
+def combine_results_traditional(var: str, outputs_dir: str, BCN: str, duration: int, hydrology_IDs: list,
+         run_dur_dic: dict=None, remove_ind_dur: bool = True) -> dict:
+    '''Combines the excess rainfall *.csv files for each duration into a 
+       single dictionary for all durations. A small value of 0.0001 is added so the result is not printed in scientific notation.
+    '''
+    pd.reset_option('^display.', silent=True)
+    assert var in ['Excess_Rainfall', 'Weights'], 'Cannot combine results'
+    dic = {}
+    df_lst = []
+    for ID in hydrology_IDs:
+        scen = '{0}_Dur{1}_{2}'.format(BCN, duration, ID)
+        file = outputs_dir/'{}_{}.csv'.format(var, scen)
+        df = pd.read_csv(file, index_col = 0)
+        if var == 'Excess_Rainfall':
+            df_dic = df.to_dict()
+            dates = list(df.index)
+            ordin = df.index.name.title()
+            events = {}
+            for k, v in df_dic.items():
+                m = list(v.values())
+                m1= [ float(i)+0.0001 if float(i)< 0.0001  and 0< float(i) else float(i)  for i in m]
+                events[k] = m1
+            key ='{0}'.format(str(ID).zfill(2))
+            val = {'time_idx_ordinate': ordin, 
+                   'run_duration_days': run_dur_dic[str(duration)],
+                    'time_idx': dates, 
+                    'pluvial_BC_units': 'inch/ts', 
+                    'BCName': {BCN: events}}         
+            dic[key] = val
+        elif var == 'Weights':
+            df_lst.append(df)
+        if remove_ind_dur:
+            os.remove(file)    
+    if var == 'Weights':
+        all_dfs = pd.concat(df_lst)
+        weights_dic = all_dfs.to_dict()
+        dic = {'BCName': {BCN: weights_dic['Weight']}}
+        #print('Total Weight:', all_dfs['Weight'].sum())
+    return dic
+
 #----------------------------------------------------------------------------------------------------------------------#
 # Functions for calculating inputs to the mean precipitation curve calculation.
 #----------------------------------------------------------------------------------------------------------------------#
@@ -752,7 +792,7 @@ def plot_max_potential_retention_cond_runoff(GEV_parameters_E: np.ndarray, PMP: 
     return None
 
 def precip_to_runoff_h1(hydro_events:np.ndarray,nrcs_precip_table_dir: pl.WindowsPath,
-                     precip_data: pd.DataFrame, df_weights_rainfall: pd.DataFrame, CN: int, display_print = False) -> pd.DataFrame:
+                     precip_data: pd.DataFrame, CN: int, display_print = False) -> pd.DataFrame:
     """Takes the events, precipitation data, nrcs temporal distribution, CN and applies the CN reduction method to
     obtain a runoff curve for each recurrence interval
     """
@@ -828,6 +868,24 @@ def precip_to_runoff_h4(hydro_events:np.ndarray ,atlas14_precip_table_dir: pl.Wi
             prep_curves[event+'_'+hyetograph] = dist_df['hyeto_input']
             prep_weights['Event Weight'].loc[event+'_'+hyetograph] = df_weights_rainfall['Event Weight'][event]*weight_df['weight'][hyetograph]
     return prep_curves, prep_weights
+
+def precip_to_runoff_atlas(hydro_events:np.ndarray,atlas14_precip_table_dir: pl.WindowsPath,
+                     precip_data: pd.DataFrame, CN: int, quartile:int, display_print = False) -> pd.DataFrame:
+    """Takes the events, precipitation data, nrcs temporal distribution, CN and applies the CN reduction method to
+    obtain a runoff curve for each recurrence interval
+    """
+    #runoff_distros1 = {}
+    Atlas14_hyetographs = {1:'q1',2: 'q2',3: 'q3',4: 'q4'}
+    prep_curves = pd.DataFrame(columns = hydro_events.astype(float))
+    for event in hydro_events:
+        dist_df, weight_df = get_hyeto_input_data_atlas(atlas14_precip_table_dir, Atlas14_hyetographs[quartile], display_print)
+        dist_df['precip'] = dist_df[Atlas14_hyetographs[quartile]]*precip_data['Median'].loc[event]
+        s = S_24hr(CN)
+        ia = IA_24hr(s)
+        dist_df = excess_precip(dist_df,ia, s)
+        prep_curves[event] = dist_df['hyeto_input']
+    return prep_curves
+
 
 def extend_time(prep_curves: pd.DataFrame,time_extend: float,time_step: float) -> pd.DataFrame:
     """extends the hyetograph by a select period of time. the timestep is the spacing between

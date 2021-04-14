@@ -651,6 +651,21 @@ def return_interval_data(raw_precip: pd.DataFrame, Return_Intervals_MC: np.ndarr
     df2['Upper (68%)'] = np.exp(df2['Max Log SD'].values)*df2['Median'].values
     return df2
 
+def return_traditional_interval_data(raw_precip: pd.DataFrame) -> pd.DataFrame:
+    """Calculates the 1% plus and minus precipitation values. 
+       values are merged with the NOAA data. In addition for each RI, the parameters are calculated for a log-normal 
+       distribution that represents the variability (uncertainty) of precipitation based on the 90-percent confidence 
+       interval retrieved from the NOAA data.
+    """
+    df2 = raw_precip
+    df2['Log SD (Lower)'] = (np.log(df2['Median'].values) - np.log(df2['Lower (90%)'].values))/1.645
+    df2['Log SD (Upper)'] = (np.log(df2['Upper (90%)'].values) - np.log(df2['Median'].values))/1.645
+    df2['Max Log SD'] = np.maximum(df2['Log SD (Lower)'].values, df2['Log SD (Upper)'].values)
+    SD = df2['Max Log SD'].values
+    df2['Lower (68%)'] = np.exp(-df2['Max Log SD'].values)*df2['Median'].values
+    df2['Upper (68%)'] = np.exp(df2['Max Log SD'].values)*df2['Median'].values
+    return df2[['Median','Lower (68%)','Upper (68%)']]
+
 def mu_truncated_LN(sigma: float, PMP: float, median: float, Initial_Value: float) -> float:
     """Find the mu parameter when the median of the truncated (at the PMP) lognormal is equal to the true median value.
     """
@@ -791,21 +806,21 @@ def plot_max_potential_retention_cond_runoff(GEV_parameters_E: np.ndarray, PMP: 
     plt.tight_layout()
     return None
 
-def precip_to_runoff_h1(hydro_events:np.ndarray,nrcs_precip_table_dir: pl.WindowsPath,
+def precip_to_runoff_nrcs(hydro_events_dict:dict,nrcs_precip_table_dir: pl.WindowsPath,
                      precip_data: pd.DataFrame, CN: int, display_print = False) -> pd.DataFrame:
     """Takes the events, precipitation data, nrcs temporal distribution, CN and applies the CN reduction method to
     obtain a runoff curve for each recurrence interval
     """
     #runoff_distros1 = {}
-    prep_curves = pd.DataFrame(columns = hydro_events.astype(float))
-    for evnt in hydro_events:
-        dist_df = get_hyeto_input_data_nrcs(nrcs_precip_table_dir, evnt, display_print)
-        dist_df['precip'] = dist_df['ratio']*precip_data['Median'].loc[evnt]
+    
+    prep_curves = pd.DataFrame(columns = hydro_events_dict.keys())
+    for event in hydro_events_dict.keys():
+        dist_df = get_hyeto_input_data_nrcs(nrcs_precip_table_dir, hydro_events_dict[event], display_print)
+        dist_df['precip'] = dist_df['ratio']*precip_data['Precip_in'].loc[event]
         s = S_24hr(CN)
         ia = IA_24hr(s)
-        #runoff_distros1[evnt] = excess_precip(dist_df,ia, s)
         dist_df = excess_precip(dist_df,ia, s)
-        prep_curves[evnt] = dist_df['hyeto_input']
+        prep_curves[event] = dist_df['hyeto_input']
     return prep_curves
 
 
@@ -869,17 +884,17 @@ def precip_to_runoff_h4(hydro_events:np.ndarray ,atlas14_precip_table_dir: pl.Wi
             prep_weights['Event Weight'].loc[event+'_'+hyetograph] = df_weights_rainfall['Event Weight'][event]*weight_df['weight'][hyetograph]
     return prep_curves, prep_weights
 
-def precip_to_runoff_atlas(hydro_events:np.ndarray,atlas14_precip_table_dir: pl.WindowsPath,
+def precip_to_runoff_atlas(hydro_events_dict:dict,atlas14_precip_table_dir: pl.WindowsPath,
                      precip_data: pd.DataFrame, CN: int, quartile:int, display_print = False) -> pd.DataFrame:
     """Takes the events, precipitation data, nrcs temporal distribution, CN and applies the CN reduction method to
     obtain a runoff curve for each recurrence interval
     """
     #runoff_distros1 = {}
     Atlas14_hyetographs = {1:'q1',2: 'q2',3: 'q3',4: 'q4'}
-    prep_curves = pd.DataFrame(columns = hydro_events.astype(float))
-    for event in hydro_events:
+    prep_curves = pd.DataFrame(columns = hydro_events_dict.keys())
+    for event in hydro_events_dict.keys():
         dist_df, weight_df = get_hyeto_input_data_atlas(atlas14_precip_table_dir, Atlas14_hyetographs[quartile], display_print)
-        dist_df['precip'] = dist_df[Atlas14_hyetographs[quartile]]*precip_data['Median'].loc[event]
+        dist_df['precip'] = dist_df[Atlas14_hyetographs[quartile]]*precip_data['Precip_in'].loc[event]
         s = S_24hr(CN)
         ia = IA_24hr(s)
         dist_df = excess_precip(dist_df,ia, s)

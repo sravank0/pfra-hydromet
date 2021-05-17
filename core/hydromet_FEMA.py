@@ -919,3 +919,25 @@ def excess_precip(dist_df: pd.DataFrame,ia: float, s: float) -> pd.DataFrame:
     dist_df['hyeto_input'] = dist_df['excess_precip'].diff()
     dist_df['hyeto_input'] = dist_df['hyeto_input'].fillna(0.0)
     return dist_df
+
+def weights_traditional(hydro_events_dict:dict) -> dict:
+    #Code for making list of years into a list of weights
+    recurrence_years = list(hydro_events_dict.values())
+    weights=[]
+    adj_weights = {}
+    uni = sorted(list(set(recurrence_years)))
+    for i, year in reversed(list(enumerate(uni))):
+        w=round(1/year-sum(weights),9) 
+        weights.append(w)
+    weights.reverse()
+    for name, rec in hydro_events_dict.items():
+        ind = uni.index(rec)
+        count = recurrence_years.count(rec)
+        adj_weights[name] = weights[ind]*(1/count)
+    return adj_weights
+
+def events_initialize(event:str):
+    if purpose == 'FEMA':
+        
+    if purpose == 'NOAA':
+        

@@ -17,11 +17,12 @@ from datetime import datetime
 logging.basicConfig(level=logging.ERROR)
 from collections import Counter, OrderedDict
 from IPython.display import display, Markdown
+from IPython.display import clear_output
 
 import numpy as np
 import pandas as pd
 from scipy import stats
-from nptyping import Array
+#from nptyping import Array
 from scipy.optimize import minimize
 from scipy import interpolate, integrate
 from matplotlib import pyplot as plt
@@ -127,6 +128,7 @@ def build_precip_table(geo_df: geoDF, all_zips_list: list, noaa_url: str,
     start = time.time()
     results = []
     for i, zip_name in enumerate(all_zips_list):
+        clear_output(wait=True)
         remote_file = os.path.join(noaa_url, zip_name)
         get_remote_file = True
         count = 1
@@ -155,6 +157,7 @@ def build_precip_table(geo_df: geoDF, all_zips_list: list, noaa_url: str,
             results.append(grid_data)
             os.remove(local_file_disk)
             if verbose: 
+                
                 print(i, zip_name)
         except ValueError as e:
             if 'Input shapes do not overlap' in str(e):
@@ -164,6 +167,7 @@ def build_precip_table(geo_df: geoDF, all_zips_list: list, noaa_url: str,
     df = pd.DataFrame.from_dict(results)
     assert df.isnull().values.any()!=True, 'NaN in results dataframe'
     if verbose: 
+        print(i)
         print(round(time.time()-start), 'Seconds')
         print(display(df.head()))
     return df
@@ -903,7 +907,7 @@ def prep_data_for_convolution(dataslice: pd.DataFrame,
 
 
 def test_shapes(dataslice: pd.DataFrame, col: str, 
-                                adj_tempEpsilon: int) -> Array[np.float64]:
+                                adj_tempEpsilon: int): #-> #Array[np.float64]:
     '''Calculates the total runoff for each interval, where the interval 
        width is equal to tempEpsilon times the timestep (30 minutes).
     '''

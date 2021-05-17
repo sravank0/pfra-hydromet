@@ -43,7 +43,7 @@ def main(forcing_dir: plib, outputs_dir: plib, bin_dir: plib, filename: str,
     '''
     files = []
     temp_files = ['DSSUTL.EXE', 'DSS_MAP.input']
-    all_durations = []
+    all_plans = []
     if scaling is False:
         for file in forcing_dir.glob('*.json'):
             files.append(file)
@@ -54,33 +54,33 @@ def main(forcing_dir: plib, outputs_dir: plib, bin_dir: plib, filename: str,
             print('Converting {} to DSS...'.format(file.name))
         with open(file) as f:
              data = json.load(f)
-        durations = list(data.keys())   
-        for dur in durations:
-            idx_ord = data[dur]['time_idx_ordinate'].lower()
-            idx = data[dur]['time_idx']
-            BCNames = list(data[dur]['BCName'].keys())
+        plans = list(data.keys())   
+        for plan in plans:
+            idx_ord = data[plan]['time_idx_ordinate'].lower()
+            idx = data[plan]['time_idx']
+            BCNames = list(data[plan]['BCName'].keys())
             for BCN in BCNames:
                 if 'D' in BCN:
                     pluv_domain = BCN  
             for BCN in BCNames:
                 if 'D' in BCN:
-                    scen_name = '{0}_{1}'.format(pluv_domain, dur)
+                    scen_name = '{0}_{1}'.format(pluv_domain, plan)
                 elif 'L' in BCN:
-                    scen_name = '{0}_{1}_{2}'.format(pluv_domain, BCN, dur)                    
+                    scen_name = '{0}_{1}_{2}'.format(pluv_domain, BCN, plan)                    
                 else:
                     if scaling is True:
-                        scen_name = '{0}_{1}'.format(BCN, dur)
+                        scen_name = '{0}_{1}'.format(BCN, plan)
                     else:
                         print(BCN, 'domain type not supported') 
-                df = pd.DataFrame.from_dict(data[dur]['BCName'][BCN])
+                df = pd.DataFrame.from_dict(data[plan]['BCName'][BCN])
                 df[idx_ord] = idx
                 df = df.set_index(idx_ord)
                 tstep_dic = determine_tstep_units(df)
                 tstep = list(tstep_dic.keys())[0]
                 tstep_units = list(tstep_dic.values())[0]
-                to_dss = 'ToDSS_{0}.input'.format(dur)
-                if dur not in all_durations:
-                    all_durations.append(dur)
+                to_dss = 'ToDSS_{0}.input'.format(plan)
+                if plan not in all_plans:
+                    all_plans.append(plan)
                     dss_map(outputs_dir, variable, tstep, tstep_units, units,
                                      data_type, to_dss = to_dss, open_op = 'a+')
                     temp_files.append(to_dss)
@@ -88,7 +88,7 @@ def main(forcing_dir: plib, outputs_dir: plib, bin_dir: plib, filename: str,
                                                         scen_name, 'a+', to_dss) 
 
             if scaling is True:
-                make_dss_file(outputs_dir, bin_dir, '{0}_{1}'.format(filename,dur), remove_temp_files = False, 
+                make_dss_file(outputs_dir, bin_dir, '{0}_{1}'.format(filename,plan), remove_temp_files = False, 
                                                 display_print = display_print)
                 temp_files.remove(to_dss)
                 os.remove(outputs_dir/to_dss)

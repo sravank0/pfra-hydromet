@@ -776,86 +776,44 @@ def return_traditional_interval_data(raw_precip: pd.DataFrame) -> pd.DataFrame:
 #     plt.tight_layout()
 #     return None
 
-def precip_to_runoff_nrcs(hydro_events_dict:dict,nrcs_precip_table_dir: pl.WindowsPath,
-                     precip_data: pd.DataFrame, CN: int, display_print = False) -> pd.DataFrame:
+
+
+def precip_to_runoff_nrcs(hydro_events:np.ndarray,nrcs_precip_table_dir: pl.WindowsPath,
+                     precip_data: pd.DataFrame, CN: int, display_print = False):
     """Takes the events, precipitation data, nrcs temporal distribution, CN and applies the CN reduction method to
     obtain a runoff curve for each recurrence interval
     """
     #runoff_distros1 = {}
-    
-    prep_curves = pd.DataFrame(columns = hydro_events_dict.keys())
-    for event in hydro_events_dict.keys():
-        dist_df = get_hyeto_input_data_nrcs(nrcs_precip_table_dir, hydro_events_dict[event], display_print)
-        dist_df['precip'] = dist_df['ratio']*precip_data['Precip_in'].loc[event]
+    prep_curves = pd.DataFrame(columns = hydro_events.astype(float))
+    for event in hydro_events:
+        dist_df = get_hyeto_input_data_nrcs(nrcs_precip_table_dir, event, display_print)
+        dist_df['precip'] = dist_df['ratio']*precip_data['Median'].loc[event]
         s = S_24hr(CN)
         ia = IA_24hr(s)
+        #runoff_distros1[event] = excess_precip(dist_df,ia, s)
         dist_df = excess_precip(dist_df,ia, s)
         prep_curves[event] = dist_df['hyeto_input']
-    return prep_curves
+        t_step = dist_df.index[1]
+    return prep_curves, t_step
 
+def precip_distributed_nrcs(hydro_events:np.ndarray,nrcs_precip_table_dir: pl.WindowsPath,
+                     precip_data: pd.DataFrame, display_print = False):
+    """Takes the events, precipitation data, nrcs temporal distribution, CN and applies the CN reduction method to
+    obtain a runoff curve for each recurrence interval
+    """
+    #runoff_distros1 = {}
+    prep_curves = pd.DataFrame(columns = hydro_events.astype(float))
+    for event in hydro_events:
+        dist_df = get_hyeto_input_data_nrcs(nrcs_precip_table_dir, event, display_print)
+        dist_df['precip'] = dist_df['ratio']*precip_data['Median'].loc[event]
+        dist_df['hyeto_input'] = dist_df['precip'].diff()
+        dist_df['hyeto_input'] = dist_df['hyeto_input'].fillna(0.0)
+        prep_curves[event] = dist_df['hyeto_input']
+        t_step = dist_df.index[1]
+    return prep_curves, t_step
 
-
-# def precip_to_runoff_h2(hydro_events:np.ndarray ,nrcs_precip_table_dir: pl.WindowsPath,
-#                      precip_data: pd.DataFrame,df_weights_rainfall: pd.DataFrame, CN: int, display_print = False) -> pd.DataFrame:
-#     """Takes the events, precipitation data, nrcs temporal distribution, CN and applies the CN reduction method to
-#     obtain a runoff curve for each recurrence interval. Also applies to events beyond published Atlas 14 values. 
-#     """
-#     prep_curves = pd.DataFrame(columns = hydro_events)
-#     hyeto_graphs = np.where(df_weights_rainfall.index.to_numpy().astype(int)<1000, df_weights_rainfall.index.to_numpy().astype(int),  1000).tolist()
-#     for event, hyetograph in zip(hydro_events, hyeto_graphs):
-#         dist_df = get_hyeto_input_data_nrcs(nrcs_precip_table_dir, hyetograph, display_print)
-#         dist_df['precip'] = dist_df['ratio']*df_weights_rainfall['P_Mean_in'].loc[event]
-#         s = S_24hr(CN)
-#         ia = IA_24hr(s)
-#         dist_df = excess_precip(dist_df,ia, s)
-#         prep_curves[event] = dist_df['hyeto_input']
-#     return prep_curves
-    
-# def precip_to_runoff_h3(hydro_events:np.ndarray ,nrcs_precip_table_dir: pl.WindowsPath,
-#                      precip_data: pd.DataFrame,df_weights_rainfall: pd.DataFrame, display_print = False) -> pd.DataFrame:
-#     """Takes the events, precipitation data, nrcs temporal distribution, selected CNs and applies the CN 
-#     reduction method to obtain a runoff curve for each recurrence interval. 
-#     """  
-#     hyeto_graphs = np.where(hydro_events <1000, hydro_events, 1000).astype(int).tolist()
-#     hydro_events = list(df_weights_rainfall.index)
-#     prep_curves = pd.DataFrame(columns = hydro_events)
-#     for event, hyetograph in zip(hydro_events, hyeto_graphs):
-#         dist_df = get_hyeto_input_data_nrcs(nrcs_precip_table_dir, hyetograph, display_print)
-#         dist_df['precip'] = dist_df['ratio']*df_weights_rainfall['Rainfall'].loc[event]
-#         s = df_weights_rainfall['Avg. S'].loc[event]
-#         ia = IA_24hr(s)
-#         dist_df = excess_precip(dist_df,ia, s)
-#         prep_curves[event] = dist_df['hyeto_input']
-#     return prep_curves
-    
-# def precip_to_runoff_h4(hydro_events:np.ndarray ,atlas14_precip_table_dir: pl.WindowsPath,
-#                      precip_data: pd.DataFrame,df_weights_rainfall: pd.DataFrame, display_print = False) -> tuple:
-#     """Takes the events, precipitation data, atlas 14 temporal distribution, selected CNs and applies the 
-#     CN reduction method to obtain a runoff curve for each recurrence interval. 
-#     """  
-#     Atlas14_hyetographs = ['q1', 'q2', 'q3', 'q4']
-#     hydro_events = list(df_weights_rainfall.index)
-#     column_names = []
-#     for event in hydro_events:
-#         for hyetograph in Atlas14_hyetographs:
-#             column_names.append(event+'_'+hyetograph)
-            
-#     prep_curves = pd.DataFrame(columns = column_names)
-#     prep_weights = pd.DataFrame(index = column_names, columns= ['Event Weight'])
-    
-#     for  hyetograph in  Atlas14_hyetographs:
-#         for event in hydro_events:
-#             dist_df, weight_df = get_hyeto_input_data_atlas(atlas14_precip_table_dir, hyetograph, display_print)
-#             dist_df['precip'] = dist_df[hyetograph]*df_weights_rainfall['Rainfall'].loc[event]
-#             s = df_weights_rainfall['Avg. S'].loc[event]
-#             ia = IA_24hr(s)
-#             dist_df = excess_precip(dist_df,ia, s)
-#             prep_curves[event+'_'+hyetograph] = dist_df['hyeto_input']
-#             prep_weights['Event Weight'].loc[event+'_'+hyetograph] = df_weights_rainfall['Event Weight'][event]*weight_df['weight'][hyetograph]
-#     return prep_curves, prep_weights
-
-def precip_to_runoff_atlas(hydro_events:list,atlas14_precip_table_dir: pl.WindowsPath,
-                     precip_data: pd.DataFrame, CN: int, quartile:int, display_print = False) -> pd.DataFrame:
+def precip_to_runoff_atlas(hydro_events:np.ndarray,atlas14_precip_table_dir: pl.WindowsPath,
+                     precip_data: pd.DataFrame, CN: int, quartile:int, display_print = False):
     """Takes the events, precipitation data, nrcs temporal distribution, CN and applies the CN reduction method to
     obtain a runoff curve for each recurrence interval
     """
@@ -869,8 +827,26 @@ def precip_to_runoff_atlas(hydro_events:list,atlas14_precip_table_dir: pl.Window
         ia = IA_24hr(s)
         dist_df = excess_precip(dist_df,ia, s)
         prep_curves[event] = dist_df['hyeto_input']
-    return prep_curves
+        t_step = dist_df.index[1]
+    return prep_curves, t_step
 
+
+def precip_distributed_atlas(hydro_events:np.ndarray,atlas14_precip_table_dir: pl.WindowsPath,
+                     precip_data: pd.DataFrame, quartile:int, display_print = False):
+    """Takes the events, precipitation data, nrcs temporal distribution, CN and applies the CN reduction method to
+    obtain a runoff curve for each recurrence interval
+    """
+    #runoff_distros1 = {}
+    Atlas14_hyetographs = {1:'q1',2: 'q2',3: 'q3',4: 'q4'}
+    prep_curves = pd.DataFrame(columns = hydro_events)
+    for event in hydro_events:
+        dist_df, weight_df = get_hyeto_input_data_atlas(atlas14_precip_table_dir, Atlas14_hyetographs[quartile], display_print)
+        dist_df['precip'] = dist_df[Atlas14_hyetographs[quartile]]*precip_data['Median'].loc[event]
+        dist_df['hyeto_input'] = dist_df['precip'].diff()
+        dist_df['hyeto_input'] = dist_df['hyeto_input'].fillna(0.0)
+        prep_curves[event] = dist_df['hyeto_input']
+        t_step = dist_df.index[1]
+    return prep_curves, t_step
 
 def extend_time(prep_curves: pd.DataFrame,time_extend: float,time_step: float) -> pd.DataFrame:
     """extends the hyetograph by a select period of time. the timestep is the spacing between
@@ -880,15 +856,15 @@ def extend_time(prep_curves: pd.DataFrame,time_extend: float,time_step: float) -
     extend_curves.index = extend_curves.index+(24+time_step)
     return prep_curves.append(extend_curves).rename_axis('hours')
 
-# def excess_precip(dist_df: pd.DataFrame,ia: float, s: float) -> pd.DataFrame:
-#     '''Calculates runoff using the curve number approach for a dataframe. See equation 10-9
-#        of NEH 630, Chapter 10
-#        (https://www.wcc.nrcs.usda.gov/ftpref/wntsc/H&H/NEHhydrology/ch10.pdf) 
-#     '''
-#     dist_df['excess_precip'] = np.where(dist_df['precip']<= ia, 0, (np.square(dist_df['precip']-ia))/(dist_df['precip']-ia+s))
-#     dist_df['hyeto_input'] = dist_df['excess_precip'].diff()
-#     dist_df['hyeto_input'] = dist_df['hyeto_input'].fillna(0.0)
-#     return dist_df
+def precip(dist_df: pd.DataFrame,ia: float, s: float) -> pd.DataFrame:
+    '''Calculates runoff using the curve number approach for a dataframe. See equation 10-9
+       of NEH 630, Chapter 10
+       (https://www.wcc.nrcs.usda.gov/ftpref/wntsc/H&H/NEHhydrology/ch10.pdf) 
+    '''
+    dist_df['excess_precip'] = np.where(dist_df['precip']<= ia, 0, (np.square(dist_df['precip']-ia))/(dist_df['precip']-ia+s))
+    dist_df['hyeto_input'] = dist_df['excess_precip'].diff()
+    dist_df['hyeto_input'] = dist_df['hyeto_input'].fillna(0.0)
+    return dist_df
 
 def weights_traditional(hydro_events_dict:dict) -> dict:
     #Code for making list of years into a list of weights

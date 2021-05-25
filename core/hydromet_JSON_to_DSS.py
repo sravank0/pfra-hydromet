@@ -88,7 +88,7 @@ def main(forcing_dir: plib, outputs_dir: plib, bin_dir: plib, filename: str,
                                                         scen_name, 'a+', to_dss) 
 
             if scaling is True:
-                make_dss_file(outputs_dir, bin_dir, '{0}_{1}'.format(filename,plan), remove_temp_files = False, 
+                make_dss_file(outputs_dir, bin_dir, '{0}_{1}'.format(filename,plan), to_dss = to_dss, remove_temp_files = False, 
                                                 display_print = display_print)
                 temp_files.remove(to_dss)
                 os.remove(outputs_dir/to_dss)

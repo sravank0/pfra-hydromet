@@ -543,14 +543,14 @@ def combine_results_stratified(var: str, outputs_dir: str, BCN: str, duration: i
        single dictionary for all durations. A small value of 0.0001 is added so the result is not printed in scientific notation.
     '''
     pd.reset_option('^display.', silent=True)
-    assert var in ['Excess_Rainfall', 'Weights'], 'Cannot combine results'
+    assert var in ['Excess_Rainfall', 'Rainfall','Weights'], 'Cannot combine results'
     dic = {}
     df_lst = []
     for ID in hydrology_IDs:
         scen = '{0}_Dur{1}_{2}'.format(BCN, duration, ID)
         file = outputs_dir/'{}_{}.csv'.format(var, scen)
         df = pd.read_csv(file, index_col = 0)
-        if var == 'Excess_Rainfall':
+        if var == 'Excess_Rainfall' or var == 'Rainfall':
             df_dic = df.to_dict()
             dates = list(df.index)
             ordin = df.index.name.title()
@@ -567,6 +567,7 @@ def combine_results_stratified(var: str, outputs_dir: str, BCN: str, duration: i
                     'pluvial_BC_units': 'inch/ts', 
                     'BCName': {BCN: events}}         
             dic[key] = val
+
         elif var == 'Weights':
             df_lst.append(df)
         if remove_ind_dur:

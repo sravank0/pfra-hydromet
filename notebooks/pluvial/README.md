@@ -14,7 +14,9 @@ These tools ([jupyter notebooks](https://jupyter.org/) ) ingest data from the NO
 
 - [__EventsTable_Stratified__](EventsTable_Stratified.ipynb): Calculates a stratified sample of runoff events given rainfall and maximum potential retention distributions. For each each event and corresponding return interval, the event weight, runoff value, maximum potential retention value, and rainfall value are calculated.
 
-- [__EventsTable_Traditional__](EventsTable_Stratified.ipynb): Calculates a stratified sample of runoff events given rainfall and maximum potential retention distributions. For each each event and corresponding return interval, the event weight, runoff value, maximum potential retention value, and rainfall value are calculated. Outputs are exported as JSON and DSS files
+- [__EventsTable_Traditional_Rainfall_](EventsTable_Traditional_Rainfall.ipynb): Temporal sampling of rainfall events. For each each event and corresponding return interval, the rainfall values are calculated as hyetographs. Rainfall hyetographs and event wights are exported as JSON and DSS files. To be used for RAS 6.0 with infiltration in model.
+
+- [__EventsTable_Traditional_Runoff_](EventsTable_Traditional_Runoff.ipynb): Temporal sampling of runoff events. For each each event and corresponding return interval, the runoff values are calculated as hyetographs. Runoff hyetographs and event weights are exported as JSON and DSS files. To be used for RAS 5.0 with excess precipitation (runoff) applied to model.
 
 - [__reEventsTable__](reEventsTable.ipynb): Calculates the reduced excess rainfall given a user-specified stormwater removal rate and capacity. Given user-specified contributing areas (stormsheds), the lateral inflow hydrograhs are also calculated for each event.
 
@@ -40,7 +42,7 @@ These tools ([jupyter notebooks](https://jupyter.org/) ) ingest data from the NO
     ```
     
     
-2. Run [EventsTable_Traditional](EventsTable_Traditional.ipynb)  in order to calculate excess rainfall events and [reEventsTable](reEventsTable.ipynb) to perform the stormwater reduction (optional).
+2. Run [EventsTable_Traditional_Runoff](EventsTable_Traditional_Runoff.ipynb)  in order to calculate excess rainfall events and [reEventsTable](reEventsTable.ipynb) to perform the stormwater reduction (optional).
 
     ```
       Inputs:
@@ -54,4 +56,20 @@ These tools ([jupyter notebooks](https://jupyter.org/) ) ingest data from the NO
         1. Precipitation statistics for each duration
         2. HTML copy of notebook
         3. Excess Runoff hyetographs in JSON and DSS format
+    ```
+    
+3. Run [EventsTable_Traditional_Rainfall](EventsTable_Traditional_Rainfall.ipynb)  in order to calculate rainfall events for RAS 6.
+
+    ```
+      Inputs:
+        1. PrecipTable.xlsx from step 1, which contains precipitation frequency tables and the NOAA Atlas 14 volume and region number. Note that the volume and region number may also be entered manually.
+        2. Pluvial_Parameters.xlsx metadata file which contains the curve number and information on the stormwater infrastructure.
+        4. Storm durations
+        5. Filenames and paths for outputs
+        6. EventsTable.ipynb
+
+      Outputs:
+        1. Precipitation statistics for each duration
+        2. HTML copy of notebook
+        3. Rainfall hyetographs in JSON and DSS format
     ```

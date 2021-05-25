@@ -1225,7 +1225,7 @@ def excess_df_to_input(outputs_dir: str, df: pd.DataFrame, tstep: float,
     '''
     temp_data_file = outputs_dir/to_dss
     cols = df.columns.tolist()
-    start_date = datetime(2000, 5, 1, 00, 00)
+    start_date = datetime(2021, 1, 1, 1, 00)
     with open(temp_data_file, open_op) as f:
         for i, col in enumerate(cols):
             m_dtm = start_date
